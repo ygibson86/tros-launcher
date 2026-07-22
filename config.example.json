@@ -1,0 +1,68 @@
+{
+  "password_hash": "",
+  "app_name": "LAUNCHER",
+  "app_logo": "L",
+  "minimize_on_launch": true,
+  "groups": [
+    {
+      "id": "group_default",
+      "name": "Основные",
+      "buttons": [
+        {
+          "id": "btn_calc",
+          "name": "Калькулятор",
+          "command": "calc.exe",
+          "console": false,
+          "powershell": false,
+          "icon": "🧮",
+          "admin": false
+        },
+        {
+          "id": "btn_notepad",
+          "name": "Блокнот",
+          "command": "notepad.exe",
+          "console": false,
+          "powershell": false,
+          "icon": "📝",
+          "admin": false
+        },
+        {
+          "id": "btn_ping",
+          "name": "Ping google.com",
+          "command": "ping google.com -t",
+          "console": true,
+          "powershell": false,
+          "icon": "📡",
+          "admin": false
+        },
+        {
+          "id": "btn_ps_example",
+          "name": "Диски (PowerShell)",
+          "command": "Get-PSDrive -PSProvider FileSystem | Format-Table -AutoSize",
+          "console": true,
+          "powershell": true,
+          "icon": "💾",
+          "admin": false
+        },
+        {
+          "id": "btn_unc_example",
+          "name": "Сетевая папка",
+          "command": "explorer.exe \"\\\\server\\share\"",
+          "console": false,
+          "powershell": false,
+          "icon": "🗂️",
+          "admin": false
+        },
+        {
+          "id": "btn_open_file_example",
+          "name": "Открыть отчёт (xlsx)",
+          "command": "start \"\" \"C:\\Reports\\report.xlsx\"",
+          "console": false,
+          "powershell": false,
+          "icon": "📊",
+          "admin": false
+        }
+      ]
+    }
+  ]
+}
