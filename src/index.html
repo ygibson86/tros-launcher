@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Launcher</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark" id="brandMark">L</span>
+        <span class="brand-text" id="brandText">LAUNCHER</span>
+      </div>
+
+      <input type="text" id="searchInput" class="search-input" placeholder="🔍 Поиск кнопок…" autocomplete="off" />
+
+      <nav class="group-list" id="groupList"></nav>
+
+      <button class="add-group-btn hidden-locked" id="addGroupBtn">+ Группа</button>
+
+      <div class="sidebar-footer">
+        <button class="icon-btn hidden-locked" id="settingsBtn" title="Настройки лаунчера">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          <span>Настройки</span>
+        </button>
+        <button class="icon-btn hidden-locked" id="passwordSettingsBtn" title="Пароль настроек">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="4" y="11" width="16" height="9" rx="2"/>
+            <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+          </svg>
+          <span>Пароль</span>
+        </button>
+        <button class="icon-btn" id="lockBtn" title="Режим редактирования">
+          <svg id="lockIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="4" y="11" width="16" height="9" rx="2"/>
+            <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+          </svg>
+          <span id="lockLabel">Заблокировано</span>
+        </button>
+        <button class="icon-btn" id="themeBtn" title="Переключить тему">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+          <span id="themeLabel">Тема</span>
+        </button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <h1 id="groupTitle">—</h1>
+        <div class="topbar-actions hidden-locked" id="addButtonBtnWrap">
+          <button class="btn-primary" id="addButtonBtn">+ Кнопка</button>
+          <button class="btn-secondary" id="deleteGroupBtn">Удалить группу</button>
+        </div>
+      </header>
+
+      <section class="grid" id="buttonGrid"></section>
+
+      <div class="empty-state" id="emptyState" style="display:none">
+        <p>В этой группе пока нет кнопок.</p>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal: пароль -->
+  <div class="modal-overlay" id="passwordModal">
+    <div class="modal">
+      <h2 id="passwordModalTitle">Введите пароль</h2>
+      <input type="password" id="passwordInput" placeholder="Пароль" autocomplete="off" />
+      <p class="modal-error" id="passwordError"></p>
+      <div class="modal-actions">
+        <button class="btn-secondary" data-close="passwordModal">Отмена</button>
+        <button class="btn-primary" id="passwordSubmit">Продолжить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: группа -->
+  <div class="modal-overlay" id="groupModal">
+    <div class="modal">
+      <h2 id="groupModalTitle">Новая группа</h2>
+      <input type="text" id="groupNameInput" placeholder="Название группы" autocomplete="off" />
+      <div class="modal-actions">
+        <button class="btn-secondary" data-close="groupModal">Отмена</button>
+        <button class="btn-primary" id="groupSubmit">Создать</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: кнопка -->
+  <div class="modal-overlay" id="buttonModal">
+    <div class="modal modal-wide">
+      <h2 id="buttonModalTitle">Новая кнопка</h2>
+
+      <label class="field-label">Название</label>
+      <input type="text" id="btnNameInput" placeholder="Например: Калькулятор" autocomplete="off" />
+
+      <label class="field-label">Группа</label>
+      <select id="btnGroupSelect"></select>
+
+      <label class="field-label">Комментарий (описание)</label>
+      <input type="text" id="btnCommentInput" placeholder="Например: Открывает калькулятор" autocomplete="off" />
+
+      <label class="field-label">Иконка (путь к .png / .ico / .svg)</label>
+      <div class="icon-field-row">
+        <input type="text" id="btnIconInput" placeholder="calc.exe" autocomplete="off" />
+        <button type="button" class="btn-secondary" id="btnIconBrowse">Обзор…</button>
+      </div>
+
+      <label class="field-label">Команда / скрипт</label>
+      <textarea id="btnCommandInput" rows="6" spellcheck="false"
+        placeholder="calc.exe&#10;или длинный PowerShell/CMD-скрипт в несколько строк"></textarea>
+
+      <div class="command-actions">
+        <button type="button" class="btn-secondary" id="btnBrowseFile">📁 Обзор…</button>
+        <span class="hint-text">вставит путь к выбранному файлу в поле команды</span>
+      </div>
+
+      <div class="checkbox-group">
+        <label class="checkbox-row">
+          <input type="checkbox" id="btnConsoleInput" />
+          <span>Консольная команда (окно остаётся открытым до нажатия клавиши)</span>
+        </label>
+        <label class="checkbox-row">
+          <input type="checkbox" id="btnPowershellInput" />
+          <span>Выполнять как PowerShell-скрипт (иначе — CMD/BAT)</span>
+        </label>
+        <label class="checkbox-row">
+          <input type="checkbox" id="btnAdminInput" />
+          <span>Запускать от имени администратора (появится запрос UAC)</span>
+        </label>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-secondary" data-close="buttonModal">Отмена</button>
+        <button class="btn-primary" id="buttonSubmit">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: смена пароля -->
+  <div class="modal-overlay" id="changePasswordModal">
+    <div class="modal">
+      <h2>Пароль настроек</h2>
+      <label class="field-label">Текущий пароль (оставьте пустым, если не задан)</label>
+      <input type="password" id="oldPasswordInput" autocomplete="off" />
+      <label class="field-label">Новый пароль (оставьте пустым, чтобы убрать защиту)</label>
+      <input type="password" id="newPasswordInput" autocomplete="off" />
+      <p class="modal-error" id="changePasswordError"></p>
+      <div class="modal-actions">
+        <button class="btn-secondary" data-close="changePasswordModal">Отмена</button>
+        <button class="btn-primary" id="changePasswordSubmit">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: настройки лаунчера -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal">
+      <h2>Настройки лаунчера</h2>
+
+      <label class="field-label">Название приложения</label>
+      <input type="text" id="appNameInput" placeholder="LAUNCHER" autocomplete="off" />
+
+      <label class="field-label">Логотип (путь к .png / .ico / .svg)</label>
+      <div class="icon-field-row">
+        <input type="text" id="appLogoInput" placeholder="L" autocomplete="off" />
+        <button type="button" class="btn-secondary" id="appLogoBrowse">Обзор…</button>
+      </div>
+
+      <label class="checkbox-row" style="margin-top:16px;">
+        <input type="checkbox" id="minimizeToggleInput" />
+        <span>Сворачивать окно лаунчера при запуске программы</span>
+      </label>
+
+      <!-- Блок экспорта/импорта -->
+      <div class="config-actions">
+        <button class="btn-secondary" id="exportConfigBtn">📤 Экспорт</button>
+        <button class="btn-secondary" id="importConfigBtn">📥 Импорт</button>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-secondary" data-close="settingsModal">Отмена</button>
+        <button class="btn-primary" id="settingsSubmit">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: подтверждение -->
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal">
+      <h2 id="confirmTitle">Подтверждение</h2>
+      <p id="confirmMessage" style="color: var(--text-dim); margin-bottom: 20px;"></p>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="confirmCancel">Отмена</button>
+        <button class="btn-primary" id="confirmOk">Да</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+# Tauri / Rust
+target/
+*.rs.bk
+*.pdb
+*.dll
+*.exe
+*.so
+*.dylib
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Логи и временные файлы
+*.log
+*.tmp
+
+# Конфиг с паролями и чувствительными данными (если хотите исключить)
+config.json
+
+src-tauri/gen/
