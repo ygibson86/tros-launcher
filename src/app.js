@@ -183,6 +183,12 @@ function renderGroupList() {
       openGroupEditor(g);
     });
 
+    item.dataset.groupId = g.id;
+    item.addEventListener("mousedown", (e) => {
+      if (e.button !== 0 || !state.editing || e.target.closest("button")) return;
+      startDrag("group", g.id, null, e.clientX, e.clientY, item, groupGhostHtml(g));
+    });
+
     list.appendChild(item);
   });
 }
@@ -313,6 +319,11 @@ function createTile(btn, group, opts) {
     } else {
       launchButton(btn);
     }
+  });
+
+  tile.addEventListener("mousedown", (e) => {
+    if (e.button !== 0 || !state.editing || e.target.closest("button")) return;
+    startDrag("button", btn.id, group.id, e.clientX, e.clientY, tile, tileGhostHtml(btn));
   });
 
   tile.querySelector(".tile-delete").addEventListener("click", async (e) => {
@@ -666,6 +677,200 @@ document.getElementById("importConfigBtn").addEventListener("click", async () =>
     showToast("Ошибка импорта: " + err);
   }
 });
+
+// ---------- Drag & Drop (мышь, pointer-based) ----------
+let dragState = null;
+let dropIndex = -1;
+let suppressNextClick = 0;
+
+function clearDropMarkers() {
+  dropIndex = -1;
+  document.querySelectorAll(".tile.drop-before, .tile.drop-after").forEach((el) =>
+    el.classList.remove("drop-before", "drop-after")
+  );
+  document.getElementById("buttonGrid").classList.remove("drop-here");
+  document.querySelectorAll(".group-item.drop-target").forEach((el) =>
+    el.classList.remove("drop-target")
+  );
+}
+
+function getDropIndex(grid, x, y) {
+  const tiles = [...grid.querySelectorAll(".tile:not(.dragging)")];
+  for (let i = 0; i < tiles.length; i++) {
+    const r = tiles[i].getBoundingClientRect();
+    if (y >= r.top && y <= r.bottom) {
+      if (x < r.left + r.width / 2) return i;
+    } else if (y < r.top) {
+      return i;
+    }
+  }
+  return tiles.length;
+}
+
+function markDropIndex(grid, idx) {
+  if (idx === dropIndex) return;
+  clearDropMarkers();
+  dropIndex = idx;
+  const tiles = [...grid.querySelectorAll(".tile:not(.dragging)")];
+  if (tiles.length === 0) {
+    grid.classList.add("drop-here");
+  } else if (idx === 0) {
+    tiles[0].classList.add("drop-before");
+  } else if (idx >= tiles.length) {
+    tiles[tiles.length - 1].classList.add("drop-after");
+  } else {
+    tiles[idx].classList.add("drop-before");
+  }
+}
+
+function tileGhostHtml(btn) {
+  const icon = btn.icon && !isImagePath(btn.icon) ? btn.icon : "▶";
+  return `<span class="drag-ghost-icon">${escapeHtml(icon)}</span><span class="drag-ghost-name">${escapeHtml(btn.name)}</span>`;
+}
+
+function groupGhostHtml(g) {
+  return `<span class="drag-ghost-icon">${escapeHtml((g.name || "G").slice(0, 1))}</span><span class="drag-ghost-name">${escapeHtml(g.name)}</span>`;
+}
+
+function startDrag(type, id, fromGroupId, x, y, sourceEl, ghostHtml) {
+  cancelDrag();
+  dragState = { type, id, fromGroupId, x, y, active: false, sourceEl, ghost: null };
+  const ghost = document.createElement("div");
+  ghost.className = "drag-ghost";
+  ghost.innerHTML = ghostHtml;
+  ghost.style.display = "none";
+  document.body.appendChild(ghost);
+  dragState.ghost = ghost;
+}
+
+function cancelDrag() {
+  const d = dragState;
+  if (!d) return;
+  if (d.ghost) d.ghost.remove();
+  if (d.sourceEl) d.sourceEl.classList.remove("dragging");
+  document.body.classList.remove("dragging");
+  clearDropMarkers();
+  dragState = null;
+}
+
+function updateDrag(x, y) {
+  const d = dragState;
+  if (!d) return;
+  if (!d.active) {
+    if (Math.hypot(x - d.x, y - d.y) < 5) return;
+    d.active = true;
+    d.ghost.style.display = "block";
+    if (d.sourceEl) d.sourceEl.classList.add("dragging");
+    document.body.classList.add("dragging");
+  }
+  const gw = d.ghost.offsetWidth;
+  const gh = d.ghost.offsetHeight;
+  d.ghost.style.left = Math.round(x - gw / 2) + "px";
+  d.ghost.style.top = Math.round(y - gh - 14) + "px";
+  highlightDropTarget(x, y);
+}
+
+function highlightDropTarget(x, y) {
+  clearDropMarkers();
+  const el = document.elementFromPoint(x, y);
+  if (!el || !dragState || !dragState.active) return;
+  if (dragState.type === "button") {
+    const groupItem = el.closest(".group-item");
+    if (groupItem && groupItem.dataset.groupId !== dragState.fromGroupId) {
+      groupItem.classList.add("drop-target");
+      return;
+    }
+    const grid = document.getElementById("buttonGrid");
+    if (grid && grid.contains(el) && !state.searchQuery.trim()) {
+      markDropIndex(grid, getDropIndex(grid, x, y));
+    }
+  } else if (dragState.type === "group") {
+    const groupItem = el.closest(".group-item");
+    if (groupItem && groupItem.dataset.groupId !== dragState.id) {
+      groupItem.classList.add("drop-target");
+    }
+  }
+}
+
+async function finishDrag(x, y) {
+  const d = dragState;
+  if (!d) return;
+  let didDrop = false;
+  if (d.active) {
+    const el = document.elementFromPoint(x, y);
+    if (el) {
+      const groups = state.config.groups;
+      if (d.type === "button") {
+        const groupItem = el.closest(".group-item");
+        if (groupItem) {
+          const fromGroup = groups.find((gg) => gg.id === d.fromGroupId);
+          const btn = fromGroup && fromGroup.buttons.find((b) => b.id === d.id);
+          const targetGroup = groups.find((gg) => gg.id === groupItem.dataset.groupId);
+          if (btn && fromGroup && targetGroup) {
+            fromGroup.buttons = fromGroup.buttons.filter((b) => b.id !== btn.id);
+            targetGroup.buttons.push(btn);
+            state.activeGroupId = targetGroup.id;
+            didDrop = true;
+          }
+        } else {
+          const grid = document.getElementById("buttonGrid");
+          if (grid && grid.contains(el) && !state.searchQuery.trim()) {
+            const fromGroup = groups.find((gg) => gg.id === d.fromGroupId);
+            const btn = fromGroup && fromGroup.buttons.find((b) => b.id === d.id);
+            const targetGroup = activeGroup();
+            if (btn && fromGroup && targetGroup) {
+              const oldIdx = fromGroup.buttons.indexOf(btn);
+              fromGroup.buttons.splice(oldIdx, 1);
+              const insertIdx = Math.min(getDropIndex(grid, x, y), targetGroup.buttons.length);
+              targetGroup.buttons.splice(insertIdx, 0, btn);
+              state.activeGroupId = targetGroup.id;
+              didDrop = true;
+            }
+          }
+        }
+      } else if (d.type === "group") {
+        const groupItem = el.closest(".group-item");
+        if (groupItem && groupItem.dataset.groupId !== d.id) {
+          const dragGroup = groups.find((gg) => gg.id === d.id);
+          const target = groups.find((gg) => gg.id === groupItem.dataset.groupId);
+          if (dragGroup && target) {
+            const dragIdx = groups.findIndex((gg) => gg.id === d.id);
+            const targetIdx = groups.findIndex((gg) => gg.id === target.id);
+            const rect = groupItem.getBoundingClientRect();
+            const before = y < rect.top + rect.height / 2;
+            groups.splice(dragIdx, 1);
+            const newTargetIdx = dragIdx < targetIdx ? targetIdx - 1 : targetIdx;
+            groups.splice(newTargetIdx + (before ? 0 : 1), 0, dragGroup);
+            didDrop = true;
+          }
+        }
+      }
+    }
+  }
+  cancelDrag();
+  if (d.active) suppressNextClick = Date.now();
+  if (didDrop) {
+    await persist();
+    render();
+  }
+}
+
+document.addEventListener("mousemove", (e) => {
+  updateDrag(e.clientX, e.clientY);
+});
+document.addEventListener("mouseup", (e) => {
+  finishDrag(e.clientX, e.clientY);
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && dragState) cancelDrag();
+});
+document.addEventListener("click", (e) => {
+  if (Date.now() - suppressNextClick < 500) {
+    suppressNextClick = 0;
+    e.stopPropagation();
+    e.preventDefault();
+  }
+}, true);
 
 // ---------- Инициализация ----------
 updateLockUI();

@@ -525,6 +525,79 @@ html[data-theme="light"] .sidebar .add-group-btn:hover {
 
 .editing .tile .tile-move { display: flex; }
 
+/* ---------- Drag & Drop ---------- */
+.tile.dragging,
+.group-item.dragging {
+  opacity: .4;
+  transform: scale(.97);
+}
+.tile.dragging:hover {
+  transform: scale(.97);
+}
+
+.tile.drop-before::before,
+.tile.drop-after::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  width: 4px;
+  border-radius: 2px;
+  background: var(--accent-strong);
+  box-shadow: 0 0 8px var(--accent-strong);
+  z-index: 5;
+}
+.tile.drop-before::before { left: -9px; }
+.tile.drop-after::after { right: -9px; }
+
+.grid.drop-here {
+  outline: 2px dashed var(--accent-strong);
+  outline-offset: -8px;
+  border-radius: var(--radius);
+}
+
+.group-item.drop-target {
+  outline: 1px dashed var(--accent-strong);
+  outline-offset: -1px;
+  background: var(--accent-soft) !important;
+  color: var(--accent-strong) !important;
+}
+
+.drag-ghost {
+  position: fixed;
+  z-index: 300;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 280px;
+  background: var(--panel);
+  border: 1px solid var(--accent);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  padding: 8px 12px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.5);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.drag-ghost .drag-ghost-icon {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.drag-ghost .drag-ghost-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body.dragging,
+body.dragging * {
+  cursor: grabbing !important;
+}
+
 .hidden-locked { display: none !important; }
 .editing .hidden-locked { display: flex !important; }
 .editing #addGroupBtn.hidden-locked { display: block !important; }
