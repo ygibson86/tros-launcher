@@ -146,6 +146,9 @@ fn read_config(path: &PathBuf) -> AppConfig {
         if let Ok(cfg) = serde_json::from_str::<AppConfig>(&data) {
             return cfg;
         }
+        // Файл существует, но не распарсился: не уничтожаем данные молча,
+        // а сохраняем повреждённую копию рядом и пересоздаём конфиг по умолчанию.
+        let _ = fs::copy(path, PathBuf::from(format!("{}.corrupt", path.display())));
     }
     let default_cfg = AppConfig::default();
     let _ = write_config(path, &default_cfg);
@@ -153,6 +156,11 @@ fn read_config(path: &PathBuf) -> AppConfig {
 }
 
 fn write_config(path: &PathBuf, cfg: &AppConfig) -> Result<(), String> {
+    // Резервная копия предыдущего конфига (config.json.bak): если новый файл
+    // повредится при записи или будет случайно удалён, всегда можно откатиться.
+    if path.exists() {
+        let _ = fs::copy(path, PathBuf::from(format!("{}.bak", path.display())));
+    }
     let data = serde_json::to_string_pretty(cfg).map_err(|e| e.to_string())?;
     fs::write(path, data).map_err(|e| e.to_string())
 }

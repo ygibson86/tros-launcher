@@ -37,7 +37,11 @@ let state = {
 // ---------- Утилиты ----------
 
 function uid(prefix) {
-  return prefix + "_" + Math.random().toString(36).slice(2, 10);
+  const rnd =
+    typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID().replace(/-/g, "").slice(0, 10)
+      : Math.random().toString(36).slice(2, 10);
+  return prefix + "_" + rnd;
 }
 
 function showToast(msg) {
@@ -383,9 +387,11 @@ function moveButton(group, button, direction) {
   render();
 }
 
+let searchTimer = null;
 document.getElementById("searchInput").addEventListener("input", (e) => {
   state.searchQuery = e.target.value;
-  render();
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => render(), 150);
 });
 
 const _escDiv = document.createElement("div");
@@ -734,13 +740,16 @@ function groupGhostHtml(g) {
 
 function startDrag(type, id, fromGroupId, x, y, sourceEl, ghostHtml) {
   cancelDrag();
-  dragState = { type, id, fromGroupId, x, y, active: false, sourceEl, ghost: null };
+  dragState = { type, id, fromGroupId, x, y, active: false, sourceEl, ghost: null, ghostHtml };
+}
+
+function ensureGhost(d) {
+  if (d.ghost) return;
   const ghost = document.createElement("div");
   ghost.className = "drag-ghost";
-  ghost.innerHTML = ghostHtml;
-  ghost.style.display = "none";
+  ghost.innerHTML = d.ghostHtml;
   document.body.appendChild(ghost);
-  dragState.ghost = ghost;
+  d.ghost = ghost;
 }
 
 function cancelDrag() {
@@ -759,7 +768,7 @@ function updateDrag(x, y) {
   if (!d.active) {
     if (Math.hypot(x - d.x, y - d.y) < 5) return;
     d.active = true;
-    d.ghost.style.display = "block";
+    ensureGhost(d);
     if (d.sourceEl) d.sourceEl.classList.add("dragging");
     document.body.classList.add("dragging");
   }
