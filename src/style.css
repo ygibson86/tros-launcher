@@ -406,8 +406,9 @@ html[data-theme="light"] .sidebar .add-group-btn:hover {
   color: var(--text-dim);
   line-height: 1.35;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .tile .tile-badges {

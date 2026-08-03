@@ -99,7 +99,9 @@ async function persist() {
 // ---------- Выбор файла иконки ----------
 document.getElementById("btnIconBrowse").addEventListener("click", async () => {
   try {
-    const path = await invoke("pick_and_copy_icon");
+    const path = await invoke("pick_and_copy_icon", {
+      name: document.getElementById("btnNameInput").value || "button",
+    });
     if (!path) return;
     document.getElementById("btnIconInput").value = path;
   } catch (err) {
@@ -109,7 +111,9 @@ document.getElementById("btnIconBrowse").addEventListener("click", async () => {
 
 document.getElementById("appLogoBrowse").addEventListener("click", async () => {
   try {
-    const path = await invoke("pick_and_copy_icon");
+    const path = await invoke("pick_and_copy_icon", {
+      name: document.getElementById("appNameInput").value || "logo",
+    });
     if (!path) return;
     document.getElementById("appLogoInput").value = path;
   } catch (err) {

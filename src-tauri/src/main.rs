@@ -436,10 +436,81 @@ fn pick_file(app: tauri::AppHandle) -> Option<String> {
     }
 }
 
+/// Переводит имя кнопки в латиницу для имени файла иконки:
+/// кириллица -> транслит, пробелы/недопустимые символы -> "-", лишние "-" схлопываются.
+fn translit_to_latin(s: &str) -> String {
+    let mut out = String::new();
+    for ch in s.chars() {
+        let c = ch.to_lowercase().next().unwrap_or(ch);
+        match c {
+            'а' => out.push_str("a"),
+            'б' => out.push_str("b"),
+            'в' => out.push_str("v"),
+            'г' => out.push_str("g"),
+            'д' => out.push_str("d"),
+            'е' => out.push_str("e"),
+            'ё' => out.push_str("yo"),
+            'ж' => out.push_str("zh"),
+            'з' => out.push_str("z"),
+            'и' => out.push_str("i"),
+            'й' => out.push_str("y"),
+            'к' => out.push_str("k"),
+            'л' => out.push_str("l"),
+            'м' => out.push_str("m"),
+            'н' => out.push_str("n"),
+            'о' => out.push_str("o"),
+            'п' => out.push_str("p"),
+            'р' => out.push_str("r"),
+            'с' => out.push_str("s"),
+            'т' => out.push_str("t"),
+            'у' => out.push_str("u"),
+            'ф' => out.push_str("f"),
+            'х' => out.push_str("h"),
+            'ц' => out.push_str("ts"),
+            'ч' => out.push_str("ch"),
+            'ш' => out.push_str("sh"),
+            'щ' => out.push_str("sch"),
+            'ъ' | 'ь' => {}
+            'ы' => out.push_str("y"),
+            'э' => out.push_str("e"),
+            'ю' => out.push_str("yu"),
+            'я' => out.push_str("ya"),
+            ' ' | '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|' => out.push('-'),
+            _ => {
+                if c.is_ascii_alphanumeric() || c == '-' || c == '.' {
+                    out.push(c);
+                } else {
+                    out.push('-');
+                }
+            }
+        }
+    }
+    let mut result = String::new();
+    let mut prev_dash = false;
+    for ch in out.chars() {
+        if ch == '-' {
+            if prev_dash {
+                continue;
+            }
+            prev_dash = true;
+        } else {
+            prev_dash = false;
+        }
+        result.push(ch);
+    }
+    let result = result.trim_matches('-').to_string();
+    if result.is_empty() {
+        "icon".to_string()
+    } else {
+        result
+    }
+}
+
 /// Открывает диалог выбора изображения, копирует файл в папку icons/ рядом с exe,
 /// возвращает относительный путь (например "icons/abc.png").
+/// Имя файла строится из переданного имени кнопки (транслит), при совпадении добавляется суффикс.
 #[tauri::command]
-fn pick_and_copy_icon(app: tauri::AppHandle) -> Result<String, String> {
+fn pick_and_copy_icon(app: tauri::AppHandle, name: String) -> Result<String, String> {
     use std::sync::mpsc;
     use tauri_plugin_dialog::DialogExt;
 
@@ -467,14 +538,13 @@ fn pick_and_copy_icon(app: tauri::AppHandle) -> Result<String, String> {
     let icons_dir = exe_dir.join("icons");
     fs::create_dir_all(&icons_dir).map_err(|e| e.to_string())?;
 
-    let dest_name = format!(
-        "icon_{}.{}",
-        std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_nanos(),
-        ext
-    );
+    let base = translit_to_latin(&name);
+    let mut dest_name = format!("{}.{}", base, ext);
+    let mut suffix = 1;
+    while icons_dir.join(&dest_name).exists() {
+        suffix += 1;
+        dest_name = format!("{}-{}.{}", base, suffix, ext);
+    }
     let dest_path = icons_dir.join(&dest_name);
     fs::copy(&source_path, &dest_path).map_err(|e| e.to_string())?;
 
@@ -682,4 +752,26 @@ fn main() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::translit_to_latin;
+
+    #[test]
+    fn translit_russian_names() {
+        assert_eq!(translit_to_latin("Принтеры"), "printery");
+        assert_eq!(translit_to_latin("ТРОС-Сервер"), "tros-server");
+        assert_eq!(translit_to_latin("Техэксперт"), "tehekspert");
+        assert_eq!(translit_to_latin("Яндекс"), "yandeks");
+    }
+
+    #[test]
+    fn translit_mixed_and_symbols() {
+        assert_eq!(translit_to_latin("VK Workspace"), "vk-workspace");
+        assert_eq!(translit_to_latin("1C (8.3.27.2074)"), "1c-8.3.27.2074");
+        assert_eq!(translit_to_latin("Вася Пупкин"), "vasya-pupkin");
+        assert_eq!(translit_to_latin(""), "icon");
+        assert_eq!(translit_to_latin("   "), "icon");
+    }
 }
